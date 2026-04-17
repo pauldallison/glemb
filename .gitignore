@@ -1,0 +1,33 @@
+# R package build artifacts
+*.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# Compiled objects (if any C/Fortran code is added later)
+src/*.o
+src/*.so
+src/*.dll
+
+# Package build output
+*.tar.gz
+*.zip
+
+# Installed package files (not source)
+Meta/
+doc/
+
+# Vignette build artifacts
+vignettes/*.html
+vignettes/*.pdf
+inst/doc/
+
+# Windows
+Thumbs.db
+
+# macOS
+.DS_Store
+.Rproj.user
+.httr-oauth
+.quarto

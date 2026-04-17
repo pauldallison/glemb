@@ -127,13 +127,11 @@
     codes <- as.integer(round(df[[v]]))
     codes <- pmin(pmax(codes, 1L), meta$nlevels)   # clamp to valid range
 
-    if (meta$orig_type == "factor") {
-      # Restore as factor with original levels
-      df[[v]] <- factor(meta$orig_values[codes], levels = meta$orig_values)
-    } else {
-      # Restore as numeric with original values (e.g. 0/1, 1/2/3)
-      df[[v]] <- meta$orig_values[codes]
-    }
+    # Always restore noms variables as factors so that downstream lm()/glm()
+    # calls treat them as categorical regardless of original storage type.
+    # (A numeric noms variable coded 0/1 or 1/2/3 would otherwise be treated
+    # as continuous in regression, giving incorrect coefficients.)
+    df[[v]] <- factor(meta$orig_values[codes], levels = meta$orig_values)
   }
   df
 }

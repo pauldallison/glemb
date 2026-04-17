@@ -8,24 +8,26 @@
 #' variables are treated as continuous.
 #'
 #' @param data A data frame containing the data to be imputed. All variables
-#'   not listed in `noms` or `idvars` are treated as continuous. Character
-#'   variables are not accepted; convert to numeric first.
+#'   not listed in `noms` or `idvars` are treated as continuous. There must
+#'   be at least one continuous variable. Character variables are not accepted;
+#'   convert to numeric first.
 #' @param m Positive integer. Number of imputed datasets to generate.
 #'   Default is `20`.
 #' @param noms Variable names to treat as categorical (nominal) in the
 #'   imputation model. Can be supplied quoted or unquoted:
 #'   `noms = c("pov", "race")` or `noms = c(pov, race)`. These variables
 #'   may be stored as numeric (e.g. 0/1 binary codes, 1/2/3 integer codes)
-#'   or as `factor`. After imputation, numeric `noms` variables are returned
-#'   with their original numeric values; `factor` `noms` variables are
-#'   returned as factors. At least one variable must be listed.
+#'   or as `factor`. All `noms` variables are returned as factors after
+#'   imputation, ensuring they are treated as categorical in downstream
+#'   regression calls. At least one variable must be listed.
 #' @param idvars Character vector of column names to be carried through to the
 #'   output unchanged but excluded from the imputation model. Typically used
 #'   for subject or case identifiers. Default is `NULL`.
 #' @param cat.interact Integer, either `2` (default) or `3`. Maximum order of
 #'   interactions among categorical variables in the log-linear model. `2`
 #'   includes all pairwise interactions; `3` includes all three-way (and
-#'   lower) interactions.
+#'   lower) interactions. Option `3` should be used with caution as it may
+#'   greatly increase the number of parameters to be estimated.
 #' @param cat.prior Numeric scalar or `NULL`. Pseudocount for the Dirichlet
 #'   prior on categorical cell probabilities, used to stabilise estimation
 #'   with sparse cells. `NULL` (default) selects an automatic value
@@ -79,7 +81,10 @@
 #' categorical variables. The continuous conditional
 #' \eqn{p(\mathbf{y} \mid \mathbf{x} = c)} is multivariate normal with a
 #' cell-specific mean vector and a covariance matrix **shared** across all
-#' cells.
+#' cells. This model implies that the conditional mean of every continuous
+#' variable is a linear function of every other variable (both continuous and
+#' categorical). The conditional distribution of every categorical variable
+#' is a logistic regression function of every other variable.
 #'
 #' ## EMB algorithm
 #'
@@ -94,11 +99,12 @@
 #'
 #' ## Sparsity
 #'
-#' When the number of cells is large relative to sample size, some cells may
-#' contain few or no observations. A Dirichlet prior (controlled by
-#' `cat.prior`) is applied by adding `cat.prior` pseudo-observations per
-#' cell to the bootstrap sample before estimation. `glemb()` warns when the
-#' number of cells exceeds `n / 5`.
+#' When the number of cells in the multiway table for the categorical variables
+#' is large relative to sample size, some cells may contain few or no
+#' observations. A Dirichlet prior (controlled by `cat.prior`) is applied by
+#' adding `cat.prior` pseudo-observations per cell to the bootstrap sample
+#' before estimation. `glemb()` warns when the number of cells exceeds
+#' `n / 5`.
 #'
 #' @references
 #' Olkin, I. & Tate, R.F. (1961). Multivariate correlation models with mixed
@@ -117,23 +123,28 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Basic usage — factor variables are automatically treated as categorical
+#' # Basic usage — specify categorical variables with noms (quoted names)
+#' imp <- glemb(mydata, m = 20, noms = c("race", "gender"), seed = 123)
+#'
+#' # Equivalent using unquoted names
+#' imp <- glemb(mydata, m = 20, noms = c(race, gender), seed = 123)
+#'
+#' # Alternatively, convert categorical variables to factors first;
+#' # they are then recognised automatically without listing in noms
 #' mydata$race   <- factor(mydata$race)
 #' mydata$gender <- factor(mydata$gender)
-#'
 #' imp <- glemb(mydata, m = 20, seed = 123)
 #'
 #' # Access the third imputed dataset
 #' imp$imputations[[3]]
 #'
 #' # Allow three-way interactions among categorical variables
-#' imp <- glemb(mydata, m = 20, cat.interact = 3, seed = 123)
+#' imp <- glemb(mydata, m = 20, noms = c(race, gender),
+#'              cat.interact = 3, seed = 123)
 #'
 #' # Exclude a subject ID from the imputation model
-#' imp <- glemb(mydata, m = 20, idvars = "subject_id", seed = 123)
-#'
-#' # Return a mids object for use with mice::pool()
-#' imp <- glemb(mydata, m = 20, output = "mids", seed = 123)
+#' imp <- glemb(mydata, m = 20, noms = c(race, gender),
+#'              idvars = "subject_id", seed = 123)
 #' }
 #'
 #' @seealso [print.glemb()], [summary.glemb()], [as.mids.glemb()]

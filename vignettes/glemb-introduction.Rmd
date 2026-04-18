@@ -1,0 +1,162 @@
+---
+title: "Introduction to glemb"
+author: "Paul D. Allison"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to glemb}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Overview
+
+`glemb` performs multiple imputation of data sets containing a mix of
+continuous and categorical variables. It implements the General Location
+Model (GLM) of Olkin and Tate (1961) and Little and Schluchter (1987),
+combined with the Expectation-Maximization with Bootstrapping (EMB)
+algorithm of Honaker, King, and Blackwell (2011).
+
+Readers familiar with multiple imputation will recognize two common
+approaches: Markov chain Monte Carlo (MCMC), as implemented in Schafer's
+`mix` package, and fully conditional specification (FCS), as implemented
+in `mice`. The `glemb` package offers a third approach based on a principled
+joint model for mixed data. Compared with MCMC, it avoids the need to monitor
+convergence of a Markov chain. Compared with FCS, it guarantees that the
+imputation model corresponds to a proper joint distribution.
+
+The General Location Model factorizes the joint distribution of continuous
+variables **y** and categorical variables **x** as:
+
+$$p(\mathbf{y}, \mathbf{x}) = p(\mathbf{y} \mid \mathbf{x})\, p(\mathbf{x})$$
+
+The categorical margin $p(\mathbf{x})$ is modelled with a log-linear model.
+The continuous conditional $p(\mathbf{y} \mid \mathbf{x} = c)$ is
+multivariate normal with a cell-specific mean and a covariance matrix shared
+across all cells. This implies that the conditional mean of every continuous
+variable is a linear function of all the other variables (both continuous and
+categorical), and that the conditional distribution of every categorical
+variable is a logistic regression function of all the other variables.
+
+Proper multiple imputations are generated via the EMB algorithm: for each of
+the `m` imputations, a bootstrap sample is drawn from the incomplete data,
+the ECM algorithm (a variant of EM) is run on the bootstrap sample to obtain
+maximum likelihood estimates of the parameters, and one completed data set
+is drawn from the posterior predictive distribution using those parameters.
+
+## Example: Antisocial Behavior in the NLSY
+
+We illustrate `glemb` using data from the National Longitudinal Survey of
+Youth (NLSY). The data set contains 581 children with measurements on seven
+variables:
+
+| Variable  | Description |
+|-----------|-------------|
+| `anti`    | Antisocial behavior score, ranging from 0 to 6 |
+| `self`    | Self-esteem score, ranging from 6 to 24 (148 missing) |
+| `pov`     | Poverty status: 1 = in poverty, 0 = otherwise (150 missing) |
+| `race`    | Race/ethnicity: 1 = White non-Hispanic, 2 = Black, 3 = Hispanic (113 missing) |
+| `momwork` | Mother employed in 1990: 1 = yes, 0 = no (86 missing) |
+| `divorce` | Mother ever divorced: 1 = yes, 0 = no |
+| `gender`  | Child's gender: 1 = female, 0 = male |
+
+The goal is to regress `anti` on all other variables after imputing the
+missing values in `self`, `pov`, `race`, and `momwork`.
+
+## Running glemb
+
+After loading the data, we select the variables of interest and call
+`glemb()`. The `noms` argument identifies the categorical variables; all
+remaining variables are treated as continuous.
+
+```{r impute, eval = FALSE}
+library(glemb)
+library(rio)
+library(dplyr)
+library(mice)
+library(knitr)
+
+nlsy <- rio::import("https://statisticalhorizons.com/wp-content/uploads/2022/01/nlsymiss.dta")
+
+nlsy <- nlsy %>%
+  select(pov, race, momwork, divorce, gender, self, anti)
+
+imp <- glemb(nlsy, m = 50,
+             noms = c(pov, race, momwork, divorce, gender),
+             seed = 456)
+```
+
+The `noms` argument accepts variable names either quoted (`"pov"`) or
+unquoted (`pov`). All variables listed in `noms` are returned as factors
+in the completed data sets, ensuring they are treated as categorical in
+downstream regression calls.
+
+By default, `glemb()` returns a `mids` object (from the `mice` package),
+which can be passed directly to `with()` and `mice::pool()` for analysis
+and pooling. Optionally, `glemb` can return a plain list containing the
+completed data frames by specifying `output = "list"`.
+
+## Fitting and Pooling the Analysis Model
+
+We fit a linear regression model to each of the 50 completed data sets and
+pool the results using Rubin's rules:
+
+```{r analyse, eval = FALSE}
+fit <- with(imp, lm(anti ~ pov + race + momwork + divorce + gender + self))
+
+kable(summary(mice::pool(fit)), digits = 3)
+```
+
+The `with()` function applies the model to each completed data set, and
+`mice::pool()` combines the estimates and standard errors using Rubin's
+(1987) rules. Because all `noms` variables are returned as factors,
+`race` is automatically treated as a categorical variable with two dummy
+variables (Black vs. White non-Hispanic and Hispanic vs. White non-Hispanic)
+in the regression.
+
+The results are shown below:
+
+```{r results, echo = FALSE}
+results <- data.frame(
+  term      = c("(Intercept)", "pov1", "race2", "race3", "momwork1",
+                "divorce1", "gender1", "self"),
+  estimate  = c( 3.006,  0.634,  0.073, -0.352,  0.216, -0.094, -0.561, -0.068),
+  std.error = c( 0.457,  0.168,  0.157,  0.161,  0.141,  0.147,  0.118,  0.021),
+  statistic = c( 6.576,  3.777,  0.463, -2.182,  1.533, -0.644, -4.778, -3.238),
+  df        = c(371.378, 196.289, 337.789, 431.635, 343.801, 517.182, 550.673, 371.954),
+  p.value   = c( 0.000,  0.000,  0.643,  0.030,  0.126,  0.520,  0.000,  0.001)
+)
+knitr::kable(results, digits = 3)
+```
+
+Children in poverty score 0.634 points higher on the antisocial behavior
+scale than children not in poverty, adjusting for all other variables.
+Hispanic children score 0.352 points lower than White non-Hispanic children.
+Girls score 0.561 points lower than boys, and higher self-esteem is associated
+with lower antisocial behavior.
+
+## References
+
+Honaker, J., King, G., & Blackwell, M. (2011). Amelia II: A program for
+missing data. *Journal of Statistical Software*, 45(7), 1--47.
+
+Little, R. J. A., & Schluchter, M. D. (1987). Maximum likelihood estimation
+for mixed continuous and categorical data with missing values.
+*Biometrika*, 74, 165--173.
+
+Olkin, I., & Tate, R. F. (1961). Multivariate correlation models with mixed
+discrete and continuous variables. *Annals of Mathematical Statistics*,
+32, 448--465.
+
+Rubin, D. B. (1987). *Multiple Imputation for Nonresponse in Surveys*.
+Wiley.
+
+Schafer, J. L. (1997). *Analysis of Incomplete Multivariate Data*.
+Chapman & Hall.

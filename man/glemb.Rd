@@ -112,9 +112,9 @@ categorical variables. The continuous conditional
 \eqn{p(\mathbf{y} \mid \mathbf{x} = c)} is multivariate normal with a
 cell-specific mean vector and a covariance matrix \strong{shared} across all
 cells. This model implies that the conditional mean of every continuous
-variable is a linear function of every other variable (both continuous and
+variable is a linear function of all the other variables (both continuous and
 categorical). The conditional distribution of every categorical variable
-is a logistic regression function of every other variable.
+is a logistic regression function of all the other variables.
 }
 
 \subsection{EMB algorithm}{

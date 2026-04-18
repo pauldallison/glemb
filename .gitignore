@@ -31,3 +31,5 @@ Thumbs.db
 .Rproj.user
 .httr-oauth
 .quarto
+/doc/
+/Meta/

@@ -6,8 +6,8 @@ Authors@R: person("Paul", "Allison", email = "allison@statisticalhorizons.com",
 Description: Provides multiple imputation for mixed continuous and categorical
     data using the General Location Model (Olkin & Tate 1961; Little &
     Schluchter 1987) combined with the Expectation-Maximization with
-    Bootstrapping (EMB) algorithm. Factor variables are automatically treated
-    as categorical; all other variables are treated as continuous. The package
+    Bootstrapping (EMB) algorithm. Categorical variables are specified via
+    the noms option; all other variables are treated as continuous. The package
     wraps the EM implementation in the 'mix' package and extends it with a
     bootstrap wrapper to produce proper multiple imputations in the sense of
     Rubin (1987).

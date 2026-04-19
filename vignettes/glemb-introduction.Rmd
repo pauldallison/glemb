@@ -127,19 +127,19 @@ The results are shown below:
 results <- data.frame(
   term      = c("(Intercept)", "pov1", "race2", "race3", "momwork1",
                 "divorce1", "gender1", "self"),
-  estimate  = c( 3.006,  0.634,  0.073, -0.352,  0.216, -0.094, -0.561, -0.068),
-  std.error = c( 0.457,  0.168,  0.157,  0.161,  0.141,  0.147,  0.118,  0.021),
-  statistic = c( 6.576,  3.777,  0.463, -2.182,  1.533, -0.644, -4.778, -3.238),
-  df        = c(371.378, 196.289, 337.789, 431.635, 343.801, 517.182, 550.673, 371.954),
-  p.value   = c( 0.000,  0.000,  0.643,  0.030,  0.126,  0.520,  0.000,  0.001)
+  estimate  = c( 3.050,  0.629,  0.077, -0.354,  0.221, -0.090, -0.563, -0.070),
+  std.error = c( 0.456,  0.168,  0.159,  0.164,  0.141,  0.147,  0.118,  0.021),
+  statistic = c( 6.686,  3.736,  0.483, -2.157,  1.562, -0.614, -4.767, -3.356),
+  df        = c(371.157, 191.940, 316.242, 390.862, 343.093, 514.252, 541.983, 378.792),
+  p.value   = c( 0.000,  0.000,  0.630,  0.032,  0.119,  0.540,  0.000,  0.001)
 )
 knitr::kable(results, digits = 3)
 ```
 
-Children in poverty score 0.634 points higher on the antisocial behavior
+Children in poverty score 0.629 points higher on the antisocial behavior
 scale than children not in poverty, adjusting for all other variables.
-Hispanic children score 0.352 points lower than White non-Hispanic children.
-Girls score 0.561 points lower than boys, and higher self-esteem is associated
+Hispanic children score 0.354 points lower than White non-Hispanic children.
+Girls score 0.563 points lower than boys, and higher self-esteem is associated
 with lower antisocial behavior.
 
 ## References

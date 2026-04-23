@@ -117,6 +117,22 @@
     data_work <- data
   }
 
+  # --- Check that there is something to impute --------------------------------
+  if (!anyNA(data_work))
+    stop("No missing values found in 'data'. glemb() is only needed when ",
+         "data contain missing values.", call. = FALSE)
+
+  # --- Coerce haven_labelled columns to numeric --------------------------------
+  # haven_labelled is a common class from haven::read_sav() / read_dta().
+  # Strip the labels so downstream type checks work correctly.
+  haven_cols <- names(data_work)[
+    vapply(data_work, function(x) inherits(x, "haven_labelled"), logical(1L))
+  ]
+  if (length(haven_cols) > 0L) {
+    data_work[haven_cols] <- lapply(data_work[haven_cols],
+                                    function(x) as.numeric(unclass(x)))
+  }
+
   # --- Reject character variables ---------------------------------------------
   char_cols <- names(data_work)[vapply(data_work, is.character, logical(1L))]
   if (length(char_cols) > 0L)
@@ -140,6 +156,26 @@
   if (length(cont_names) == 0L)
     stop("No continuous variables found. glemb() requires at least one ",
          "variable not listed in 'noms'.", call. = FALSE)
+
+  # --- Validate continuous variables ------------------------------------------
+  for (v in cont_names) {
+    col  <- data_work[[v]]
+    vals <- col[!is.na(col)]
+
+    if (any(is.infinite(col)))
+      stop("Continuous variable '", v, "' contains infinite values ",
+           "(Inf or -Inf). Remove or replace them before calling glemb().",
+           call. = FALSE)
+
+    if (length(vals) == 0L)
+      warning("Continuous variable '", v, "' is entirely missing. Imputed ",
+              "values will be drawn from an unanchored distribution.",
+              call. = FALSE)
+    else if (length(unique(vals)) == 1L)
+      stop("Continuous variable '", v, "' has no variance (all non-missing ",
+           "values are identical). Remove it or recode it before calling ",
+           "glemb().", call. = FALSE)
+  }
 
   # --- Validate noms variables ------------------------------------------------
   factor_meta <- vector("list", length(cat_names))

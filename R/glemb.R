@@ -3,9 +3,7 @@
 #' @description
 #' `glemb()` performs multiple imputation of mixed continuous and categorical
 #' data using the General Location Model (GLM) combined with the
-#' Expectation-Maximization with Bootstrapping (EMB) algorithm. Variables
-#' stored as `factor` are automatically treated as categorical; all other
-#' variables are treated as continuous.
+#' Expectation-Maximization with Bootstrapping (EMB) algorithm.
 #'
 #' @param data A data frame containing the data to be imputed. All variables
 #'   not listed in `noms` or `idvars` are treated as continuous. There must
@@ -45,7 +43,9 @@
 #'   sampling) and `mix`'s internal generator (used for imputation draws) are
 #'   seeded deterministically as `seed + b` on iteration `b`. Must be a
 #'   positive integer no greater than 2,000,000,000. Default is `NULL` (no
-#'   seed set).
+#'   seed set). For reproducibility, it is essential to set the seed within
+#'   the `glemb()` function. Using `set.seed()` before calling `glemb()` will
+#'   have no effect on the output.
 #' @param output Character scalar. `"mids"` (default) returns a `mids` object
 #'   compatible with [mice::pool()] (requires the `mice` package). `"list"`
 #'   returns a plain list of `m` completed data frames.
@@ -123,17 +123,11 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Basic usage — specify categorical variables with noms (quoted names)
-#' imp <- glemb(mydata, m = 20, noms = c("race", "gender"), seed = 123)
-#'
-#' # Equivalent using unquoted names
+#' # Basic usage — specify categorical variables with noms (unquoted names)
 #' imp <- glemb(mydata, m = 20, noms = c(race, gender), seed = 123)
 #'
-#' # Alternatively, convert categorical variables to factors first;
-#' # they are then recognised automatically without listing in noms
-#' mydata$race   <- factor(mydata$race)
-#' mydata$gender <- factor(mydata$gender)
-#' imp <- glemb(mydata, m = 20, seed = 123)
+#' # Equivalent using quoted names
+#' imp <- glemb(mydata, m = 20, noms = c("race", "gender"), seed = 123)
 #'
 #' # Access the third imputed dataset
 #' imp$imputations[[3]]
@@ -200,6 +194,13 @@ glemb <- function(data,
             "their levels, or increase cat.prior.", call. = FALSE)
   }
 
+  # ---- Guard against both priors being zero with many cells ------------------
+  if (cat.prior == 0 && empri == 0 && n_cells > 20L) {
+    warning("cat.prior = 0 and empri = 0 with ", n_cells, " cells may cause ",
+            "numerical instability (singular covariance matrix). Consider ",
+            "setting cat.prior > 0.", call. = FALSE)
+  }
+
   if (p2s > 0L) {
     message("glemb: ", p, " categorical variable(s), ", q,
             " continuous variable(s), ", n_cells, " cell(s)")
@@ -252,6 +253,28 @@ glemb <- function(data,
             paste(nonconv_iters, collapse = ", "), ". ",
             "Consider increasing maxits or checking for sparse cells.",
             call. = FALSE)
+  }
+
+  # ---- Check that all observed categories appear in at least one imputation --
+  # If a category is so rare that bootstrap resampling never selects it,
+  # it will be absent from all imputed values.
+  for (v in prep$cat_names) {
+    missing_rows <- which(is.na(prep$data_model[[v]]))
+    if (length(missing_rows) == 0L) next
+
+    imputed_vals <- unlist(lapply(imputations, function(df) {
+      as.character(df[[v]][missing_rows])
+    }))
+    observed_cats <- as.character(prep$factor_meta[[v]]$orig_values)
+    absent_cats   <- setdiff(observed_cats, unique(imputed_vals))
+
+    if (length(absent_cats) > 0L) {
+      warning("Variable '", v, "': the following categories never appeared ",
+              "as imputed values across all ", m, " imputations: ",
+              paste(absent_cats, collapse = ", "), ". This may indicate very ",
+              "rare categories. Consider increasing m or cat.prior.",
+              call. = FALSE)
+    }
   }
 
   if (p2s > 0L) message("glemb: done.")

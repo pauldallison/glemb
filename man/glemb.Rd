@@ -65,7 +65,9 @@ When supplied, both R's random number generator (used for bootstrap
 sampling) and \code{mix}'s internal generator (used for imputation draws) are
 seeded deterministically as \code{seed + b} on iteration \code{b}. Must be a
 positive integer no greater than 2,000,000,000. Default is \code{NULL} (no
-seed set).}
+seed set). For reproducibility, it is essential to set the seed within
+the \code{glemb()} function. Using \code{set.seed()} before calling \code{glemb()} will
+have no effect on the output.}
 
 \item{output}{Character scalar. \code{"mids"} (default) returns a \code{mids} object
 compatible with \code{\link[mice:pool]{mice::pool()}} (requires the \code{mice} package). \code{"list"}
@@ -94,9 +96,7 @@ applicable).}
 \description{
 \code{glemb()} performs multiple imputation of mixed continuous and categorical
 data using the General Location Model (GLM) combined with the
-Expectation-Maximization with Bootstrapping (EMB) algorithm. Variables
-stored as \code{factor} are automatically treated as categorical; all other
-variables are treated as continuous.
+Expectation-Maximization with Bootstrapping (EMB) algorithm.
 }
 \details{
 \subsection{Statistical model}{
@@ -143,17 +143,11 @@ before estimation. \code{glemb()} warns when the number of cells exceeds
 }
 \examples{
 \dontrun{
-# Basic usage — specify categorical variables with noms (quoted names)
-imp <- glemb(mydata, m = 20, noms = c("race", "gender"), seed = 123)
-
-# Equivalent using unquoted names
+# Basic usage — specify categorical variables with noms (unquoted names)
 imp <- glemb(mydata, m = 20, noms = c(race, gender), seed = 123)
 
-# Alternatively, convert categorical variables to factors first;
-# they are then recognised automatically without listing in noms
-mydata$race   <- factor(mydata$race)
-mydata$gender <- factor(mydata$gender)
-imp <- glemb(mydata, m = 20, seed = 123)
+# Equivalent using quoted names
+imp <- glemb(mydata, m = 20, noms = c("race", "gender"), seed = 123)
 
 # Access the third imputed dataset
 imp$imputations[[3]]

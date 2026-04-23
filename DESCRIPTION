@@ -1,6 +1,6 @@
 Package: glemb
 Title: Multiple Imputation Using the General Location Model with the EMB Algorithm
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: person("Paul", "Allison", email = "allison@statisticalhorizons.com",
     role = c("aut", "cre"))
 Description: Provides multiple imputation for mixed continuous and categorical

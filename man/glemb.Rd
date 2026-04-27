@@ -70,8 +70,10 @@ the \code{glemb()} function. Using \code{set.seed()} before calling \code{glemb(
 have no effect on the output.}
 
 \item{output}{Character scalar. \code{"mids"} (default) returns a \code{mids} object
-compatible with \code{\link[mice:pool]{mice::pool()}} (requires the \code{mice} package). \code{"list"}
-returns a plain list of \code{m} completed data frames.}
+compatible with \code{\link[mice:pool]{mice::pool()}} (requires the \code{mice} package). \code{"mitml"}
+returns a \code{mitml.list} object compatible with \code{\link[mitml:testEstimates]{mitml::testEstimates()}}
+(requires the \code{mitml} package). \code{"list"} returns a plain list of \code{m}
+completed data frames.}
 
 \item{p2s}{Integer, \code{0} or \code{1}. Verbosity of console output. \code{0} = silent;
 \code{1} = show progress (default).}

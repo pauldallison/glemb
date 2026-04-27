@@ -47,8 +47,10 @@
 #'   the `glemb()` function. Using `set.seed()` before calling `glemb()` will
 #'   have no effect on the output.
 #' @param output Character scalar. `"mids"` (default) returns a `mids` object
-#'   compatible with [mice::pool()] (requires the `mice` package). `"list"`
-#'   returns a plain list of `m` completed data frames.
+#'   compatible with [mice::pool()] (requires the `mice` package). `"mitml"`
+#'   returns a `mitml.list` object compatible with [mitml::testEstimates()]
+#'   (requires the `mitml` package). `"list"` returns a plain list of `m`
+#'   completed data frames.
 #' @param p2s Integer, `0` or `1`. Verbosity of console output. `0` = silent;
 #'   `1` = show progress (default).
 #'

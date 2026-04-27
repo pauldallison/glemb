@@ -167,5 +167,9 @@
     return(as.mids.glemb(result, data))
   }
 
+  if (output == "mitml") {
+    return(mitml::as.mitml.list(imputations))
+  }
+
   result
 }

@@ -88,12 +88,16 @@
            call. = FALSE)
   }
 
-  if (!output %in% c("list", "mids"))
-    stop("'output' must be \"list\" or \"mids\".", call. = FALSE)
+  if (!output %in% c("list", "mids", "mitml"))
+    stop("'output' must be \"list\", \"mids\", or \"mitml\".", call. = FALSE)
 
   if (output == "mids" && !requireNamespace("mice", quietly = TRUE))
     stop("output = \"mids\" requires the 'mice' package. ",
          "Install it with: install.packages(\"mice\")", call. = FALSE)
+
+  if (output == "mitml" && !requireNamespace("mitml", quietly = TRUE))
+    stop("output = \"mitml\" requires the 'mitml' package. ",
+         "Install it with: install.packages(\"mitml\")", call. = FALSE)
 
   if (!p2s %in% c(0L, 1L))
     stop("'p2s' must be 0 or 1.", call. = FALSE)

@@ -100,8 +100,10 @@ downstream regression calls.
 
 By default, `glemb()` returns a `mids` object (from the `mice` package),
 which can be passed directly to `with()` and `mice::pool()` for analysis
-and pooling. Optionally, `glemb` can return a plain list containing the
-completed data frames by specifying `output = "list"`.
+and pooling. Two alternative output formats are also available: specifying
+`output = "mitml"` returns a `mitml.list` object compatible with the `mitml`
+package and its `testEstimates()` function; specifying `output = "list"`
+returns a plain list of completed data frames.
 
 ## Fitting and Pooling the Analysis Model
 

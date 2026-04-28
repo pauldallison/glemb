@@ -83,7 +83,11 @@
   converged <- is.na(last_iter) || last_iter < maxits
 
   # ---- Seed mix's RNG for reproducible imputation draw ----------------------
-  if (!is.null(seed)) mix::rngseed(seed + b)
+  # mix::imp.mix() requires rngseed() to have been called before it can draw
+  # imputed values. When seed is NULL we use a random integer from R's RNG so
+  # that mix is always initialised, even on a fresh session.
+  rng_seed <- if (!is.null(seed)) seed + b else sample.int(2e9L, 1L)
+  mix::rngseed(rng_seed)
 
   # ---- Impute the ORIGINAL data using bootstrap parameters ------------------
   # orig_pre describes the missingness in the original n observations.

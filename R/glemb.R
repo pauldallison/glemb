@@ -51,6 +51,23 @@
 #'   returns a `mitml.list` object compatible with [mitml::testEstimates()]
 #'   (requires the `mitml` package). `"list"` returns a plain list of `m`
 #'   completed data frames.
+#' @param max.cells Positive integer or `Inf`. Maximum number of cells in the
+#'   multiway contingency table before `glemb()` stops with an error. The
+#'   `mix` package allocates arrays proportional to the cell count; with many
+#'   nominal variables or variables with many levels the cell count can reach
+#'   millions, exhausting available RAM and crashing R before any imputation
+#'   begins. The default limit of `500000` catches most dangerous cases while
+#'   allowing complex but feasible problems. Set to `Inf` to disable the check
+#'   (expert use only; ensure you have sufficient RAM first).
+#' @param meanmodel Character scalar. Controls the parameterisation of the
+#'   within-cell continuous variable means. `"main"` (default) includes only
+#'   the main effects of the categorical variables, giving
+#'   `1 + sum(K_j - 1)` mean parameters per continuous variable (where
+#'   `K_j` is the number of levels of the j-th categorical variable).
+#'   `"saturated"` allows a separate mean vector for every cell of the
+#'   multiway contingency table, giving `n_cells` mean parameters per
+#'   continuous variable. The saturated model is more flexible but requires
+#'   substantially more data and is prone to instability when cells are sparse.
 #' @param p2s Integer, `0` or `1`. Verbosity of console output. `0` = silent;
 #'   `1` = show progress (default).
 #'
@@ -67,7 +84,9 @@
 #'     if applicable).}
 #'   \item{`empri`}{Ridge prior strength used (after automatic selection if
 #'     applicable).}
+#'   \item{`maxits`}{Maximum ECM iterations per bootstrap sample.}
 #'   \item{`seed`}{Seed used, or `NULL`.}
+#'   \item{`meanmodel`}{Mean model used: `"main"` or `"saturated"`.}
 #' }
 #'
 #' @details
@@ -82,11 +101,17 @@
 #' model restricted to at most `cat.interact`-way interactions among the
 #' categorical variables. The continuous conditional
 #' \eqn{p(\mathbf{y} \mid \mathbf{x} = c)} is multivariate normal with a
-#' cell-specific mean vector and a covariance matrix **shared** across all
-#' cells. This model implies that the conditional mean of every continuous
-#' variable is a linear function of all the other variables (both continuous and
-#' categorical). The conditional distribution of every categorical variable
-#' is a logistic regression function of all the other variables.
+#' covariance matrix **shared** across all cells. How the cell means are
+#' parameterised depends on `meanmodel`. With `"main"` (default) the mean of
+#' each continuous variable depends on an intercept plus the main effects of
+#' the categorical variables — the same parameterisation as a standard
+#' regression with dummy variables. With `"saturated"` each cell has its own
+#' unrestricted mean vector. Both models imply that the conditional mean of
+#' every continuous variable is a linear function of all other variables; the
+#' saturated model additionally allows all interactions among the categorical
+#' variables to enter the means. The conditional distribution of every
+#' categorical variable is a logistic regression function of all the other
+#' variables.
 #'
 #' ## EMB algorithm
 #'
@@ -141,6 +166,11 @@
 #' # Exclude a subject ID from the imputation model
 #' imp <- glemb(mydata, m = 20, noms = c(race, gender),
 #'              idvars = "subject_id", seed = 123)
+#'
+#' # Use a saturated mean model (cell-specific intercepts; more flexible,
+#' # requires more data)
+#' imp <- glemb(mydata, m = 20, noms = c(race, gender),
+#'              meanmodel = "saturated", seed = 123)
 #' }
 #'
 #' @seealso [print.glemb()], [summary.glemb()], [as.mids.glemb()]
@@ -156,6 +186,8 @@ glemb <- function(data,
                   maxits       = 1000L,
                   seed         = NULL,
                   output       = "mids",
+                  max.cells    = 500000L,
+                  meanmodel    = "main",
                   p2s          = 1L) {
 
   cl <- match.call()
@@ -171,7 +203,7 @@ glemb <- function(data,
 
   # ---- Input validation ------------------------------------------------------
   .check_inputs(data, m, noms, idvars, cat.interact, cat.prior, empri,
-                maxits, seed, output, p2s)
+                maxits, seed, output, p2s, meanmodel, max.cells)
 
   # ---- Preprocess data -------------------------------------------------------
   prep <- .preprocess_data(data, noms, idvars)
@@ -181,9 +213,23 @@ glemb <- function(data,
   n       <- nrow(prep$data_model)
   p       <- prep$p
   q       <- length(prep$cont_names)
+  n_levels <- vapply(prep$factor_meta, `[[`, integer(1L), "nlevels")
+  n_cells  <- prod(n_levels)
+
+  # ---- Pre-flight memory check -----------------------------------------------
+  if (n_cells > max.cells) {
+    stop("The nominal variables produce ", formatC(n_cells, format = "d", big.mark = ","),
+         " cells (", paste(names(n_levels), collapse = " x "), " = ",
+         paste(n_levels, collapse = " x "), "). ",
+         "glemb allocates arrays proportional to the cell count; this will ",
+         "exhaust available RAM. Consider reducing the number of nominal ",
+         "variables, merging rare levels, or removing low-variance categoricals. ",
+         "To override this limit set max.cells = Inf (ensure sufficient RAM).",
+         call. = FALSE)
+  }
+
   margins <- .make_margins(p, cat.interact)
-  design  <- .make_design(prep$factor_meta)
-  n_cells <- ncol(design)
+  design  <- .make_design(prep$factor_meta, meanmodel)
 
   # ---- Resolve prior strengths -----------------------------------------------
   cat.prior <- .resolve_cat_prior(cat.prior, n, n_cells)
@@ -294,6 +340,7 @@ glemb <- function(data,
     empri        = empri,
     maxits       = maxits,
     seed         = seed,
+    meanmodel    = meanmodel,
     output       = output,
     data         = data
   )

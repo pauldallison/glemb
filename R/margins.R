@@ -39,16 +39,39 @@
 
 # Build the design matrix for mix::ecm.mix.
 #
-# A diagonal identity matrix of size n_cells x n_cells specifies
-# cell-specific intercepts (means) with a shared covariance matrix — the
-# parameterisation used in glemb.
-#
 # @param factor_meta Named list of factor metadata (from .preprocess_data).
-# @return Numeric identity matrix of dimension n_cells.
+# @param meanmodel   "main" (default) or "saturated".
+#   "main":      intercept + treatment-coded dummies per categorical variable;
+#                1 + sum(K_j - 1) columns.
+#   "saturated": identity matrix; one column per cell (n_cells columns).
+# @return Numeric matrix of dimension n_cells x r.
 #
-.make_design <- function(factor_meta) {
-  n_cells <- prod(vapply(factor_meta, `[[`, integer(1L), "nlevels"))
-  diag(rep(1, n_cells))
+.make_design <- function(factor_meta, meanmodel = "main") {
+  n_levels <- vapply(factor_meta, `[[`, integer(1L), "nlevels")
+  n_cells  <- prod(n_levels)
+
+  if (meanmodel == "saturated") {
+    return(diag(n_cells))
+  }
+
+  # Main-effects: intercept + treatment-coded dummies (reference = level 1).
+  # Rows enumerate cells in expand.grid order (first variable varies fastest),
+  # matching mix's internal cell numbering.
+  cell_grid <- do.call(expand.grid, lapply(n_levels, seq_len))
+
+  intercept  <- matrix(1.0, nrow = n_cells, ncol = 1L,
+                       dimnames = list(NULL, "(Intercept)"))
+
+  dummy_list <- lapply(seq_along(factor_meta), function(j) {
+    K_j <- n_levels[[j]]
+    if (K_j == 1L) return(NULL)
+    lvl <- cell_grid[[j]]
+    dum <- outer(lvl, 2L:K_j, `==`) * 1.0
+    colnames(dum) <- paste0(names(factor_meta)[[j]], "_", 2L:K_j)
+    dum
+  })
+
+  do.call(cbind, c(list(intercept), Filter(Negate(is.null), dummy_list)))
 }
 
 # --------------------------------------------------------------------------- #

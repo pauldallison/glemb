@@ -39,10 +39,15 @@ $$p(\mathbf{y}, \mathbf{x}) = p(\mathbf{y} \mid \mathbf{x})\, p(\mathbf{x})$$
 
 The categorical margin $p(\mathbf{x})$ is modelled with a log-linear model.
 The continuous conditional $p(\mathbf{y} \mid \mathbf{x} = c)$ is
-multivariate normal with a cell-specific mean and a covariance matrix shared
-across all cells. This implies that the conditional mean of every continuous
-variable is a linear function of all the other variables (both continuous and
-categorical), and that the conditional distribution of every categorical
+multivariate normal with a covariance matrix shared across all cells. By
+default (`meanmodel = "main"`) the mean of each continuous variable depends on
+an intercept plus the main effects of the categorical variables, using the same
+dummy-variable parameterisation as a standard regression. A fully saturated
+model (`meanmodel = "saturated"`) instead allows each cell its own unrestricted
+mean vector; this is more flexible but requires substantially more data and can
+be numerically unstable when cells are sparse. Both specifications imply that
+the conditional mean of every continuous variable is a linear function of all
+the other variables, and that the conditional distribution of every categorical
 variable is a logistic regression function of all the other variables.
 
 Proper multiple imputations are generated via the EMB algorithm: for each of

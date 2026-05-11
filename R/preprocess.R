@@ -29,7 +29,7 @@
 # --------------------------------------------------------------------------- #
 
 .check_inputs <- function(data, m, noms, idvars, cat.interact, cat.prior,
-                          empri, maxits, seed, output, p2s) {
+                          empri, maxits, seed, output, p2s, meanmodel, max.cells) {
 
   if (!is.data.frame(data))
     stop("'data' must be a data frame.", call. = FALSE)
@@ -90,6 +90,12 @@
 
   if (!output %in% c("list", "mids", "mitml"))
     stop("'output' must be \"list\", \"mids\", or \"mitml\".", call. = FALSE)
+
+  if (!meanmodel %in% c("main", "saturated"))
+    stop("'meanmodel' must be \"main\" or \"saturated\".", call. = FALSE)
+
+  if (!is.numeric(max.cells) || length(max.cells) != 1L || max.cells < 1L)
+    stop("'max.cells' must be a positive number or Inf.", call. = FALSE)
 
   if (output == "mids" && !requireNamespace("mice", quietly = TRUE))
     stop("output = \"mids\" requires the 'mice' package. ",

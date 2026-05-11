@@ -1,3 +1,23 @@
+# glemb 0.1.2
+
+* Added `max.cells` argument to `glemb()` (default `500000`). A pre-flight
+  check now stops with an informative error before `glemb` allocates any memory
+  when the nominal variables would produce more cells than this limit. Set
+  `max.cells = Inf` to disable the check.
+* Added `meanmodel` argument to `glemb()`. `"main"` (default) constrains the
+  continuous variable means to depend only on the main effects of the
+  categorical variables, reducing the number of mean parameters from
+  `n_cells` to `1 + sum(K_j - 1)`. `"saturated"` restores the original
+  cell-specific intercepts (unrestricted means).
+* The `meanmodel` value is stored in the returned object and displayed by
+  `print()` and `summary()`.
+
+# glemb 0.1.1
+
+* Added `output = "mitml"` option, returning a `mitml.list` object compatible
+  with `mitml::testEstimates()`.
+* Several bug fixes.
+
 # glemb 0.1.0
 
 Initial release.

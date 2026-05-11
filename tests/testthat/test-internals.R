@@ -21,12 +21,34 @@ test_that(".make_margins generates correct vectors", {
   expect_equal(.make_margins(2L, 3L), c(1L, 2L))
 })
 
-test_that(".make_design returns correct identity matrix", {
+test_that('.make_design meanmodel="main" returns main-effects design matrix', {
   fm <- list(
     a = list(name = "a", levels = c("x","y"),   nlevels = 2L),
     b = list(name = "b", levels = c("p","q","r"), nlevels = 3L)
   )
-  D <- .make_design(fm)
+  D <- .make_design(fm, "main")
+  # 6 cells, 1 + 1 + 2 = 4 columns (intercept, a_2, b_2, b_3)
+  expect_true(is.matrix(D))
+  expect_equal(dim(D), c(6L, 4L))
+  # Cell order (expand.grid, a varies fastest):
+  #   (a=1,b=1), (a=2,b=1), (a=1,b=2), (a=2,b=2), (a=1,b=3), (a=2,b=3)
+  expected <- matrix(c(
+    1, 0, 0, 0,
+    1, 1, 0, 0,
+    1, 0, 1, 0,
+    1, 1, 1, 0,
+    1, 0, 0, 1,
+    1, 1, 0, 1
+  ), nrow = 6L, byrow = TRUE)
+  expect_equal(unname(D), expected)
+})
+
+test_that('.make_design meanmodel="saturated" returns identity matrix', {
+  fm <- list(
+    a = list(name = "a", levels = c("x","y"),   nlevels = 2L),
+    b = list(name = "b", levels = c("p","q","r"), nlevels = 3L)
+  )
+  D <- .make_design(fm, "saturated")
   expect_true(is.matrix(D))
   expect_equal(dim(D), c(6L, 6L))
   expect_equal(D, diag(6L))

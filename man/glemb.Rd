@@ -15,6 +15,8 @@ glemb(
   maxits = 1000L,
   seed = NULL,
   output = "mids",
+  max.cells = 500000L,
+  meanmodel = "main",
   p2s = 1L
 )
 }
@@ -75,6 +77,25 @@ returns a \code{mitml.list} object compatible with \code{\link[mitml:testEstimat
 (requires the \code{mitml} package). \code{"list"} returns a plain list of \code{m}
 completed data frames.}
 
+\item{max.cells}{Positive integer or \code{Inf}. Maximum number of cells in the
+multiway contingency table before \code{glemb()} stops with an error. The
+\code{mix} package allocates arrays proportional to the cell count; with many
+nominal variables or variables with many levels the cell count can reach
+millions, exhausting available RAM and crashing R before any imputation
+begins. The default limit of \code{500000} catches most dangerous cases while
+allowing complex but feasible problems. Set to \code{Inf} to disable the check
+(expert use only; ensure you have sufficient RAM first).}
+
+\item{meanmodel}{Character scalar. Controls the parameterisation of the
+within-cell continuous variable means. \code{"main"} (default) includes only
+the main effects of the categorical variables, giving
+\code{1 + sum(K_j - 1)} mean parameters per continuous variable (where
+\code{K_j} is the number of levels of the j-th categorical variable).
+\code{"saturated"} allows a separate mean vector for every cell of the
+multiway contingency table, giving \code{n_cells} mean parameters per
+continuous variable. The saturated model is more flexible but requires
+substantially more data and is prone to instability when cells are sparse.}
+
 \item{p2s}{Integer, \code{0} or \code{1}. Verbosity of console output. \code{0} = silent;
 \code{1} = show progress (default).}
 }
@@ -92,7 +113,9 @@ An object of class \code{"glemb"}, which is a list with components:
 if applicable).}
 \item{\code{empri}}{Ridge prior strength used (after automatic selection if
 applicable).}
+\item{\code{maxits}}{Maximum ECM iterations per bootstrap sample.}
 \item{\code{seed}}{Seed used, or \code{NULL}.}
+\item{\code{meanmodel}}{Mean model used: \code{"main"} or \code{"saturated"}.}
 }
 }
 \description{
@@ -112,11 +135,17 @@ The categorical margin \eqn{p(\mathbf{x})} is modelled with a log-linear
 model restricted to at most \code{cat.interact}-way interactions among the
 categorical variables. The continuous conditional
 \eqn{p(\mathbf{y} \mid \mathbf{x} = c)} is multivariate normal with a
-cell-specific mean vector and a covariance matrix \strong{shared} across all
-cells. This model implies that the conditional mean of every continuous
-variable is a linear function of all the other variables (both continuous and
-categorical). The conditional distribution of every categorical variable
-is a logistic regression function of all the other variables.
+covariance matrix \strong{shared} across all cells. How the cell means are
+parameterised depends on \code{meanmodel}. With \code{"main"} (default) the mean of
+each continuous variable depends on an intercept plus the main effects of
+the categorical variables — the same parameterisation as a standard
+regression with dummy variables. With \code{"saturated"} each cell has its own
+unrestricted mean vector. Both models imply that the conditional mean of
+every continuous variable is a linear function of all other variables; the
+saturated model additionally allows all interactions among the categorical
+variables to enter the means. The conditional distribution of every
+categorical variable is a logistic regression function of all the other
+variables.
 }
 
 \subsection{EMB algorithm}{
@@ -161,6 +190,11 @@ imp <- glemb(mydata, m = 20, noms = c(race, gender),
 # Exclude a subject ID from the imputation model
 imp <- glemb(mydata, m = 20, noms = c(race, gender),
              idvars = "subject_id", seed = 123)
+
+# Use a saturated mean model (cell-specific intercepts; more flexible,
+# requires more data)
+imp <- glemb(mydata, m = 20, noms = c(race, gender),
+             meanmodel = "saturated", seed = 123)
 }
 
 }

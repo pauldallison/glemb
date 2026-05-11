@@ -148,7 +148,7 @@
 #
 .build_output <- function(imputations, m, call, cat_names, cont_names,
                           idvars, cat.interact, cat.prior, empri, maxits,
-                          seed, output, data) {
+                          seed, meanmodel, output, data) {
 
   result <- structure(
     list(
@@ -162,7 +162,8 @@
       cat.prior    = cat.prior,
       empri        = empri,
       maxits       = maxits,
-      seed         = seed
+      seed         = seed,
+      meanmodel    = meanmodel
     ),
     class = "glemb"
   )

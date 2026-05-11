@@ -20,6 +20,7 @@ print.glemb <- function(x, digits = 3L, ...) {
   cat("Continuous vars   :", paste(x$continuous,  collapse = ", "), "\n")
   if (length(x$idvars) > 0L)
     cat("ID vars           :", paste(x$idvars, collapse = ", "), "\n")
+  cat("Mean model        :", x$meanmodel, "\n")
   cat("Interaction order :", x$cat.interact, "\n")
   cat("cat.prior         :", round(x$cat.prior, digits), "\n")
   cat("empri             :", round(x$empri,     digits), "\n")
@@ -63,6 +64,7 @@ summary.glemb <- function(object, digits = 3L, ...) {
         sep = "")
 
   cat("\nModel settings:\n")
+  cat("  Mean model        :", object$meanmodel, "\n")
   cat("  Interaction order :", object$cat.interact, "\n")
   cat("  cat.prior         :", round(object$cat.prior, digits), "\n")
   cat("  empri             :", round(object$empri,     digits), "\n")
@@ -112,7 +114,13 @@ as.mids.glemb <- function(x, data, ...) {
     df
   })
 
-  orig      <- data
+  orig <- data
+  # Coerce categorical columns in the original data to factors with the same
+  # levels as the imputed datasets. Without this, rbind coerces factor columns
+  # to character when the original stores noms variables as numeric.
+  for (v in x$categorical) {
+    orig[[v]] <- factor(orig[[v]], levels = levels(x$imputations[[1L]][[v]]))
+  }
   orig$.imp <- 0L
   orig$.id  <- seq_len(nrow(data))
 

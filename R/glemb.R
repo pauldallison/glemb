@@ -257,6 +257,21 @@ glemb <- function(data,
     message("glemb: running ", m, " bootstrap iterations...")
   }
 
+  # ---- Prime mix's Fortran RNG to a known state --------------------------------
+  # mix's Marsaglia-Zaman RNG has a 97-element table plus two index counters
+  # (i97, j97) stored in a Fortran COMMON block that persists across calls.
+  # rngseed() resets the table from the seed but may leave the counters at
+  # whatever position previous imp.mix calls left them. Over m iterations,
+  # those counters advance by a fixed total; when m is odd the counters end in
+  # a different position than they started, so the next run starts from a
+  # different counter state and produces different imputations — alternating
+  # between two result sets on successive runs.
+  #
+  # Calling rngseed(seed) here, before any mix routine runs, ensures the
+  # Fortran common block is always in the same state at the top of every
+  # glemb() call regardless of prior mix usage.
+  if (!is.null(seed)) mix::rngseed(seed)
+
   # ---- Pre-compute preliminary analysis on original data ---------------------
   # This is used by imp.mix in every iteration to impute the original
   # observations (not the bootstrap resample) — the correct EMB approach.

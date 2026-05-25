@@ -45,6 +45,14 @@
   # ---- Seed R's RNG for reproducible bootstrap sampling ---------------------
   if (!is.null(seed)) set.seed(seed + b)
 
+  # ---- Seed mix's Fortran RNG for ecm.mix ------------------------------------
+  # mix::ecm.mix() uses a Fortran RNG whose state persists across calls.
+  # Seeding here (before prelim.mix and ecm.mix) ensures em_pars are fully
+  # reproducible for a given (seed, b).  Imputation is handled by .glm_impute()
+  # which uses R's own RNG (already seeded above), so no second rngseed call
+  # is needed.
+  if (!is.null(seed)) mix::rngseed(seed + b)
+
   # ---- Draw bootstrap sample (used only for EM parameter estimation) --------
   idx      <- sample(n, n, replace = TRUE)
   boot_dat <- data_model[idx, , drop = FALSE]
@@ -82,17 +90,14 @@
   )
   converged <- is.na(last_iter) || last_iter < maxits
 
-  # ---- Seed mix's RNG for reproducible imputation draw ----------------------
-  # mix::imp.mix() requires rngseed() to have been called before it can draw
-  # imputed values. When seed is NULL we use a random integer from R's RNG so
-  # that mix is always initialised, even on a fresh session.
-  rng_seed <- if (!is.null(seed)) seed + b else sample.int(2e9L, 1L)
-  mix::rngseed(rng_seed)
-
   # ---- Impute the ORIGINAL data using bootstrap parameters ------------------
+  # .glm_impute() is a pure-R replacement for mix::imp.mix().  It uses R's
+  # RNG (seeded above via set.seed(seed + b)), which can be fully reset on
+  # every call — unlike mix's Fortran RNG which retains state across calls and
+  # caused period-2 alternation when m was odd.
   # orig_pre describes the missingness in the original n observations.
   # em_pars provides the bootstrap-derived parameters (proper MI uncertainty).
-  imp_mat <- mix::imp.mix(orig_pre, em_pars, data_mat)
+  imp_mat <- .glm_impute(orig_pre, em_pars, data_mat)
 
   # Convert to data frame (imp_mat has the same n rows as the original data)
   imp_df <- as.data.frame(imp_mat)

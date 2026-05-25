@@ -1,3 +1,11 @@
+# glemb 0.1.3
+
+* Fixed a reproducibility bug where calling `glemb()` with an odd number of
+  imputations (`m`) caused results to alternate between two distinct sets of
+  imputations across successive calls with the same seed. The imputation step
+  now uses R's own random number generator instead of the Fortran RNG in the
+  `mix` package, whose internal state could not be fully reset between calls.
+
 # glemb 0.1.2
 
 * Added `max.cells` argument to `glemb()` (default `500000`). A pre-flight
